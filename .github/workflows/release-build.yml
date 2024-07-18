@@ -1,9 +1,11 @@
 name: Release Build
 
 on:
+  workflow_dispatch:
   push:
-    tags:
-      - "v*"
+    tags-ignore:
+      - 'latest'
+
 
 jobs:
   build:
@@ -25,8 +27,8 @@ jobs:
 
       - name: Build with Gradle
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew assembleRelease --no-daemon
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+        run: ./gradlew assembleRelease --no-daemon -PnoProguard
 
       - name: Sign APK
         id: sign_apk
@@ -44,6 +46,7 @@ jobs:
       - name: Publish release APK
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
+          repo_token: "${{ secrets.GIT_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
           files: revanced-manager-${{ env.RELEASE_VERSION }}.apk

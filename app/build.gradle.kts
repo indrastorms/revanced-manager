@@ -15,7 +15,7 @@ android {
     buildToolsVersion = "34.0.0"
 
     defaultConfig {
-        applicationId = "app.revanced.manager"
+        applicationId = "app.revanced.manager.compose"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
