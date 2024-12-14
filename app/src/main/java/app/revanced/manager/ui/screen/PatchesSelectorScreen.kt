@@ -35,6 +35,9 @@ import app.revanced.manager.ui.component.AppTopBar
 import app.revanced.manager.ui.component.LazyColumnWithScrollbar
 import app.revanced.manager.ui.component.SafeguardDialog
 import app.revanced.manager.ui.component.SearchView
+import app.revanced.manager.ui.component.haptics.HapticCheckbox
+import app.revanced.manager.ui.component.haptics.HapticExtendedFloatingActionButton
+import app.revanced.manager.ui.component.haptics.HapticTab
 import app.revanced.manager.ui.component.patches.OptionItem
 import app.revanced.manager.ui.viewmodel.PatchesSelectorViewModel
 import app.revanced.manager.ui.viewmodel.PatchesSelectorViewModel.Companion.SHOW_SUPPORTED
@@ -43,6 +46,7 @@ import app.revanced.manager.ui.viewmodel.PatchesSelectorViewModel.Companion.SHOW
 import app.revanced.manager.util.Options
 import app.revanced.manager.util.PatchSelection
 import app.revanced.manager.util.isScrollingUp
+import app.revanced.manager.util.transparentListItemColors
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -293,7 +297,7 @@ fun PatchesSelectorScreen(
         floatingActionButton = {
             if (!showPatchButton) return@Scaffold
 
-            ExtendedFloatingActionButton(
+            HapticExtendedFloatingActionButton(
                 text = { Text(stringResource(R.string.save)) },
                 icon = {
                     Icon(
@@ -321,7 +325,7 @@ fun PatchesSelectorScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.0.dp)
                 ) {
                     bundles.forEachIndexed { index, bundle ->
-                        Tab(
+                        HapticTab(
                             selected = pagerState.currentPage == index,
                             onClick = {
                                 composableScope.launch {
@@ -432,13 +436,13 @@ private fun PatchItem(
     selected: Boolean,
     onToggle: () -> Unit,
     supported: Boolean = true
-) = ListItem(
+) = ListItem (
     modifier = Modifier
         .let { if (!supported) it.alpha(0.5f) else it }
         .clickable(onClick = onToggle)
         .fillMaxSize(),
     leadingContent = {
-        Checkbox(
+        HapticCheckbox(
             checked = selected,
             onCheckedChange = { onToggle() },
             enabled = supported
@@ -452,7 +456,7 @@ private fun PatchItem(
                 Icon(Icons.Outlined.Settings, null)
             }
         }
-    }
+    },
 )
 
 @Composable
@@ -477,7 +481,8 @@ private fun ListHeader(
                     )
                 }
             }
-        }
+        },
+        colors = transparentListItemColors
     )
 }
 
