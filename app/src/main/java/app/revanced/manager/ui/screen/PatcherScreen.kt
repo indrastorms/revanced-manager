@@ -1,5 +1,7 @@
 package app.revanced.manager.ui.screen
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -26,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.revanced.manager.R
 import app.revanced.manager.data.room.apps.installed.InstallType
 import app.revanced.manager.ui.component.AppScaffold
@@ -35,7 +37,6 @@ import app.revanced.manager.ui.component.InstallerStatusDialog
 import app.revanced.manager.ui.component.haptics.HapticExtendedFloatingActionButton
 import app.revanced.manager.ui.component.patcher.InstallPickerDialog
 import app.revanced.manager.ui.component.patcher.Steps
-import app.revanced.manager.ui.model.State
 import app.revanced.manager.ui.model.StepCategory
 import app.revanced.manager.ui.viewmodel.PatcherViewModel
 import app.revanced.manager.util.APK_MIMETYPE
@@ -47,7 +48,11 @@ fun PatcherScreen(
     onBackClick: () -> Unit,
     vm: PatcherViewModel
 ) {
-    BackHandler(onBack = onBackClick)
+    fun leaveScreen() {
+        vm.onBack()
+        onBackClick()
+    }
+    BackHandler(onBack = ::leaveScreen)
 
     val context = LocalContext.current
     val exportApkLauncher =
@@ -63,19 +68,13 @@ fun PatcherScreen(
         }
     }
 
-    val patchesProgress by vm.patchesProgress.collectAsStateWithLifecycle()
-
-    val progress by remember {
-        derivedStateOf {
-            val (patchesCompleted, patchesTotal) = patchesProgress
-
-            val current = vm.steps.count {
-                it.state == State.COMPLETED && it.category != StepCategory.PATCHING
-            } + patchesCompleted
-
-            val total = vm.steps.size - 1 + patchesTotal
-
-            current.toFloat() / total.toFloat()
+    if (patcherSucceeded == null) {
+        DisposableEffect(Unit) {
+            val window = (context as Activity).window
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            onDispose {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
     }
 
@@ -85,8 +84,9 @@ fun PatcherScreen(
             onConfirm = vm::install
         )
 
-    if (vm.installerStatusDialogModel.packageInstallerStatus != null)
-        InstallerStatusDialog(vm.installerStatusDialogModel)
+    vm.packageInstallerStatus?.let {
+        InstallerStatusDialog(it, vm, vm::dismissPackageInstallerDialog)
+    }
 
     val activityLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -124,7 +124,7 @@ fun PatcherScreen(
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.patcher),
-                onBackClick = onBackClick
+                onBackClick = ::leaveScreen
             )
         },
         bottomBar = {
@@ -180,7 +180,7 @@ fun PatcherScreen(
                 .fillMaxSize()
         ) {
             LinearProgressIndicator(
-                progress = { progress },
+                progress = { vm.progress },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -196,7 +196,8 @@ fun PatcherScreen(
                     Steps(
                         category = category,
                         steps = steps,
-                        stepCount = if (category == StepCategory.PATCHING) patchesProgress else null
+                        stepCount = if (category == StepCategory.PATCHING) vm.patchesProgress else null,
+                        stepProgressProvider = vm
                     )
                 }
             }
